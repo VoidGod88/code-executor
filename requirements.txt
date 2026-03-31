@@ -1,0 +1,18 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+
+# 数据科学 & 机器学习核心库
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+seaborn
+joblib
+
+# Torch CPU 版（推荐写法）
+torch
+torchvision
+torchaudio
