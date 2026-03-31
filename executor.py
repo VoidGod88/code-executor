@@ -3,6 +3,7 @@ import sys
 import traceback
 from io import StringIO
 import time
+import re
 
 def safe_exec_code(code: str, timeout: int = 30):
     """Safely execute student code and catch syntax/runtime errors"""
@@ -34,6 +35,31 @@ def safe_exec_code(code: str, timeout: int = 30):
         "details": details,
         "execution_time": round(exec_time, 3)
     }
+
+def parse_test_cases(test_cases):
+    """增强版：解析测试用例，支持清理 Markdown 代码块"""
+    if not test_cases or not isinstance(test_cases, str):
+        return {"success": False, "error": "Test cases are empty or not string"}
+
+    try:
+        cleaned = test_cases.strip()
+
+        # 清理常见的 Markdown 代码块
+        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned, flags=re.IGNORECASE | re.MULTILINE)
+        cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE)
+        cleaned = cleaned.strip()
+
+        # 尝试解析 JSON
+        tests = json.loads(cleaned)
+
+        if not isinstance(tests, list):
+            tests = [tests] if tests else []
+
+        return {"success": True, "tests": tests}
+    except json.JSONDecodeError as e:
+        return {"success": False, "error": f"JSON decode error: {str(e)}"}
+    except Exception as e:
+        return {"success": False, "error": f"Parse error: {str(e)}"}
 
 
 def run_python_tests(namespace: dict, tests: list, captured_stdout: str = ""):
