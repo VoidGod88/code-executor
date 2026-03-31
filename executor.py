@@ -6,7 +6,6 @@ import time
 import re
 
 def safe_exec_code(code: str, timeout: int = 30):
-    """Safely execute student code and catch syntax/runtime errors"""
     old_stdout = sys.stdout
     sys.stdout = StringIO()
     namespace = {}
@@ -37,17 +36,21 @@ def safe_exec_code(code: str, timeout: int = 30):
     }
 
 def parse_test_cases(test_cases):
-    """解析测试用例，自动清理 Markdown 代码块"""
     if not test_cases or not isinstance(test_cases, str):
         return {"success": False, "error": "Test cases are empty or not string"}
 
     cleaned = test_cases.strip()
+    start = cleaned.find('```')
+    if start != -1:
+        first_line_end = cleaned.find('\n', start)
+        if first_line_end == -1:
+            first_line_end = start + 3
+        end = cleaned.rfind('```')
+        if end != -1 and end > first_line_end:
+            cleaned = cleaned[first_line_end:end].strip()
 
-    # 匹配最外层的 Markdown 代码块，支持 ```json 或 ```
-    pattern = r'^```(?:json)?\s*\n(.*?)\n```\s*$'
-    match = re.search(pattern, cleaned, re.DOTALL | re.IGNORECASE)
-    if match:
-        cleaned = match.group(1).strip()
+    if not cleaned:
+        return {"success": False, "error": "No JSON content found after cleaning"}
 
     try:
         tests = json.loads(cleaned)
@@ -55,12 +58,15 @@ def parse_test_cases(test_cases):
             tests = [tests] if tests else []
         return {"success": True, "tests": tests}
     except json.JSONDecodeError as e:
-        return {"success": False, "error": f"JSON decode error: {str(e)}"}
+        preview = cleaned[:200] + ("..." if len(cleaned) > 200 else "")
+        return {
+            "success": False,
+            "error": f"JSON decode error: {str(e)}. Cleaned content preview: {preview}"
+        }
     except Exception as e:
         return {"success": False, "error": f"Parse error: {str(e)}"}
 
 def run_python_tests(namespace: dict, tests: list, captured_stdout: str = ""):
-    """Run all test cases against the executed code"""
     results = []
     all_passed = True
 
